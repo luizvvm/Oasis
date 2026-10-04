@@ -115,42 +115,52 @@ tab_mapa, tab_temporal, tab_causas, tab_via = st.tabs([
 with tab_mapa:
     st.subheader("Mapeamento Geográfico dos Incidentes")
 
-    # Os acidentes aparecem como círculos vermelhos no mapa
+    # Os acidentes aparecem como círculos vermelhos no mapa (com transparência nativa)
     layer_acidentes = pdk.Layer(
         "ScatterplotLayer",
         data=df_filtrado,
         get_position=["longitude", "latitude"],
-        get_color="[220, 50, 50, 180]",
+        get_color="[220, 50, 50, 180]", # RGBA: Vermelho com ~70% de opacidade
         get_radius=250,
         radius_min_pixels=4,
         radius_max_pixels=15,
         pickable=True
     )
 
-    # Cria um pequeno quadrado azul usado como símbolo dos hospitais
-    quadrado_hospital = {
+    # NOVO código para o marcador de hospital "bonito"
+    # A principal mudança é a cor de preenchimento (fill) no SVG, que agora tem canal alfa (transparência).
+    # original: fill='%231e64ff' (azul sólido)
+    # novo:     fill='%231e64ff99' (azul com ~60% de opacidade) e remoção da borda (stroke='none')
+    quadrado_hospital_bonito = {
         "url": "data:image/svg+xml;charset=utf-8,"
                "%3Csvg xmlns='http://www.w3.org/2000/svg' "
                "width='64' height='64' viewBox='0 0 64 64'%3E"
                "%3Crect x='8' y='8' width='48' height='48' "
-               "fill='%231e64ff'/%3E"
+               "fill='%231e64ff99' stroke='none'/%3E" # fill modificado com transparência e borda removida
                "%3C/svg%3E",
         "width": 64,
         "height": 64,
         "anchorY": 32
     }
 
-    # Os hospitais aparecem como quadrados azuis
+    # ADIÇÃO: Atribui o dicionário de configuração do ícone a uma nova coluna do DataFrame
+    df_hospitais['icon_data'] = [quadrado_hospital_bonito] * len(df_hospitais)
+
+    # Os hospitais aparecem como quadrados azuis *bonitos* (com transparência e bordas suaves)
+    # Os hospitais aparecem como quadrados azuis com redimensionamento dinâmico
     layer_hospitais = pdk.Layer(
         "IconLayer",
         data=df_hospitais,
         get_position=["longitude", "latitude"],
-        get_icon=lambda x: quadrado_hospital,
-        get_size=5,
-        size_scale=5,
+        get_icon="icon_data",
+        get_size=500,            # Tamanho em metros (equivalente ao diâmetro de 250m de raio dos acidentes)
+        size_units="meters",     # Redimensiona os ícones dinamicamente com o zoom do mapa
+        size_min_pixels=4,       # Mantém o mesmo tamanho mínimo da camada de acidentes
+        size_max_pixels=15,      # Limita o tamanho máximo para não obstruir a visualização
         pickable=True
     )
 
+    # O resto do código (pdk.Deck e st.pydeck_chart) permanece o mesmo
     view_state = pdk.ViewState(
         latitude=-22.5,
         longitude=-43.2,
@@ -158,7 +168,6 @@ with tab_mapa:
         pitch=30
     )
 
-    # Junta as duas camadas para mostrar acidentes e hospitais no mesmo mapa
     mapa = pdk.Deck(
         layers=[
             layer_acidentes,
@@ -186,12 +195,6 @@ with tab_mapa:
         """
         **Legenda:** 🔴 acidentes | 🔵 hospitais
         """
-    )
-
-    st.caption(
-        f"{len(df_filtrado):,} acidentes filtrados e "
-        f"{len(df_hospitais):,} hospitais identificados na base do CNES."
-        .replace(",", ".")
     )
 
 
