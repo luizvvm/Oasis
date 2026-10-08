@@ -13,17 +13,19 @@ def contagem(serie, nome, top=None):
     return c.rename_axis(nome).reset_index(name="quantidade")
 
 
-def barras(dados, categoria, cor, horizontal=False, rotulo=None):
-    rotulos = {categoria: rotulo or categoria, "quantidade": "Ocorrências"}
-    if horizontal:
-        fig = px.bar(dados, x="quantidade", y=categoria, orientation="h",
-                     labels=rotulos, color_discrete_sequence=[cor])
-        fig.update_layout(yaxis={"categoryorder": "total ascending"})
-    else:
-        fig = px.bar(dados, x=categoria, y="quantidade",
-                     labels=rotulos, color_discrete_sequence=[cor])
+def barras(dados, categoria, cor, rotulo=None, hover=None):
+    """Barras verticais. `hover` é uma coluna com o texto do tooltip no lugar do valor do eixo."""
+    nome = rotulo or categoria
+    fig = px.bar(dados, x=categoria, y="quantidade", color_discrete_sequence=[cor],
+                 labels={categoria: nome, "quantidade": "Ocorrências"})
+    fig.update_traces(
+        customdata=dados[[hover or categoria]],
+        hovertemplate=f"{nome}: %{{customdata[0]}}<br>Ocorrências: %{{y}}<extra></extra>",
+    )
     st.plotly_chart(fig, width="stretch")
 
+
+periodo = f"{df['data_inversa'].min():%d/%m/%Y} a {df['data_inversa'].max():%d/%m/%Y}"
 
 st.title("Análises dos acidentes")
 
@@ -40,22 +42,32 @@ tab_temporal, tab_causas, tab_via = st.tabs(
 with tab_temporal:
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**Ocorrências por horário do dia**")
+        st.markdown("**Total de ocorrências por horário do dia**")
+        st.caption(f"Soma de todos os dias do período ({periodo}), não a média por dia.")
         por_hora = df.groupby("hora").size().reindex(range(24), fill_value=0)
-        barras(por_hora.rename_axis("hora").reset_index(name="quantidade"), "hora", "#1f77b4", rotulo="Hora")
+        por_hora = por_hora.rename_axis("hora").reset_index(name="quantidade")
+        por_hora["faixa"] = por_hora["hora"].map(lambda h: f"{h}:00-{h + 1}:00")
+        barras(por_hora, "hora", "#1f77b4", rotulo="Hora", hover="faixa")
     with col2:
-        st.markdown("**Ocorrências por dia da semana**")
+        st.markdown("**Total de ocorrências por dia da semana**")
+        st.caption(f"Soma de todas as semanas do período ({periodo}).")
         por_dia = df["dia_semana"].value_counts().reindex(DIAS, fill_value=0)
         barras(por_dia.rename_axis("dia_semana").reset_index(name="quantidade"), "dia_semana", "#2ca02c", rotulo="Dia")
     st.markdown("**Ocorrências por fase do dia**")
     barras(contagem(df["fase_dia"], "fase_dia"), "fase_dia", "#9467bd", rotulo="Fase do dia")
+    st.markdown(
+        "- **Amanhecer:** período do nascer do sol, em que a luz ainda é fraca.\n"
+        "- **Pleno dia:** dia claro, com boa visibilidade.\n"
+        "- **Anoitecer:** período do pôr do sol, em que a luz vai acabando.\n"
+        "- **Plena noite:** noite fechada, sem luz natural."
+    )
 
 with tab_causas:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**Principais tipos de acidente**")
         barras(contagem(df["tipo_acidente"], "tipo_acidente", 8), "tipo_acidente", "#ff7f0e",
-               horizontal=True, rotulo="Tipo")
+               rotulo="Tipo")
     with col2:
         st.markdown("**Classificação por severidade**")
         fig = px.pie(contagem(df["classificacao_acidente"], "classificacao"),
@@ -74,17 +86,30 @@ with tab_via:
         barras(contagem(df["condicao_metereologica"], "condicao"), "condicao", "#17becf", rotulo="Clima")
     with col2:
         st.markdown("**Traçado da via**")
-        barras(contagem(df["tracado_via"], "tracado", 6), "tracado", "#8c564b",
-               horizontal=True, rotulo="Traçado")
+        tracado = contagem(df["tracado_via"].str.replace(";", ", "), "tracado", 6)
+        barras(tracado, "tracado", "#8c564b", rotulo="Traçado")
     st.markdown("**Municípios com maior volume de ocorrências**")
     top_mun = contagem(df["municipio"], "Município", 10)
     st.dataframe(top_mun.rename(columns={"quantidade": "Total de acidentes"}),
                  width="stretch", hide_index=True)
 
+COLUNAS_TABELA = {
+    "data_inversa": "Data",
+    "horario": "Horário",
+    "nome_corredor": "Rodovia",
+    "km": "Km",
+    "municipio": "Município",
+    "tipo_acidente": "Tipo de acidente",
+    "classificacao_acidente": "Classificação",
+    "causa_acidente": "Causa",
+    "mortos": "Mortos",
+    "feridos": "Feridos",
+}
+
 with st.expander("Exibir base de dados em tabela"):
     st.dataframe(
-        df[["data_inversa", "horario", "nome_corredor", "km", "municipio", "tipo_acidente",
-            "classificacao_acidente", "causa_acidente", "mortos", "feridos"]],
+        df[list(COLUNAS_TABELA)].rename(columns=COLUNAS_TABELA),
         width="stretch",
         hide_index=True,
+        column_config={"Data": st.column_config.DateColumn("Data", format="DD/MM/YYYY")},
     )

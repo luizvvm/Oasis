@@ -1,19 +1,25 @@
 import pydeck as pdk
 import streamlit as st
 
-from utils import TIPOS_PADRAO, TIPOS_UNIDADES, load_hospitals
+from utils import filtro_tipos_unidade, load_hospitals
 
 df = st.session_state["df_filtrado"]
 hospitais = load_hospitals()
 
-st.title("Mapa de acidentes e hospitais")
-
-tipos = st.sidebar.multiselect(
-    "Tipos de unidade de saúde:", TIPOS_UNIDADES, default=TIPOS_PADRAO
+# O mapa cabe na tela: sem scroll da página, pra rolar o zoom não esconder o mapa
+st.markdown(
+    """<style>
+    [data-testid="stMain"] { overflow: hidden; }
+    [data-testid="stMainBlockContainer"] { padding-top: 3rem; padding-bottom: 0; }
+    </style>""",
+    unsafe_allow_html=True,
 )
+
+tipos = filtro_tipos_unidade()
 hospitais = hospitais[hospitais["ds_tipo_unidade"].isin(tipos)].copy()
 
-c1, c2 = st.columns(2)
+c0, c1, c2 = st.columns([2, 1, 1], vertical_alignment="center")
+c0.subheader("Mapa de acidentes e hospitais")
 mostrar_acidentes = c1.toggle("Mostrar acidentes", value=True)
 mostrar_hospitais = c2.toggle("Mostrar unidades de saúde", value=True)
 
@@ -79,7 +85,7 @@ mapa = pdk.Deck(
     tooltip={"html": "{tooltip_html}", "style": {"backgroundColor": "white", "color": "black"}},
 )
 
-st.pydeck_chart(mapa, height=600)
+st.pydeck_chart(mapa, height=480)
 st.caption(
     f"🔴 acidentes ({len(acidentes)}) | 🔵 unidades de saúde ({len(unidades)}). "
     "Os filtros de rodovia e gravidade afetam só os acidentes."

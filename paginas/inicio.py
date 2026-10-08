@@ -4,6 +4,18 @@ from utils import load_data
 
 df = load_data()
 
+# A página cabe na tela: sem scroll da página
+st.markdown(
+    """<style>
+    [data-testid="stMain"] { overflow: hidden; }
+    [data-testid="stMainBlockContainer"] { padding-top: 2.5rem; padding-bottom: 0; gap: clamp(0.5rem, 1.3vh, 1rem); }
+    [data-testid="stMainBlockContainer"] hr { margin: clamp(0.5rem, 1.3vh, 1rem) 0; }
+    [data-testid="stMainBlockContainer"] h1 { padding: 0 0 clamp(0.25rem, 1vh, 0.75rem) 0; }
+    [data-testid="stMainBlockContainer"] h3 { padding: clamp(0.25rem, 1vh, 0.75rem) 0; }
+    </style>""",
+    unsafe_allow_html=True,
+)
+
 st.title("Projeto Oasis")
 st.subheader("Acidentes nas rodovias federais do Rio de Janeiro e a rede de saúde ao redor")
 st.write(
