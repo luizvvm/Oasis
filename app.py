@@ -9,6 +9,7 @@ pg = st.navigation(
         st.Page("paginas/inicio.py", title="Início", icon="🏠", default=True),
         st.Page("paginas/mapa.py", title="Mapa", icon="🗺️"),
         st.Page("paginas/analises.py", title="Análises", icon="📊"),
+        st.Page("paginas/proximidade.py", title="Hospital mais próximo", icon="🏥"),
     ]
 )
 
