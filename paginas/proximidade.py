@@ -11,8 +11,18 @@ RAIO_TERRA_KM = 6371.0
 
 df = st.session_state["df_filtrado"].dropna(subset=["latitude", "longitude"]).reset_index(drop=True)
 tipos = filtro_tipos_unidade()
+usar_fora = st.sidebar.checkbox(
+    "Incluir apoio fora do RJ (ES, MG, SP)",
+    value=True,
+    help="Pontos aproximados nas divisas, para os acidentes da fronteira não parecerem sem socorro.",
+)
+
 hosp = load_hospitals()
-hosp = hosp[hosp["ds_tipo_unidade"].isin(tipos)].reset_index(drop=True)
+# os pontos de fora do RJ entram sempre (se ativados), independente do tipo marcado
+mascara = hosp["ds_tipo_unidade"].isin(tipos) | hosp["fora_rj"]
+if not usar_fora:
+    mascara = mascara & ~hosp["fora_rj"]
+hosp = hosp[mascara].reset_index(drop=True)
 
 if hosp.empty:
     st.warning("Nenhum tipo de unidade selecionado. Escolha ao menos um na barra lateral.")
@@ -41,11 +51,13 @@ idx, km = achar_mais_proximo(
 )
 df["dist_km"] = km
 df["hosp_i"] = idx  # posição do hospital dentro de hosp
+df["hosp_fora"] = hosp["fora_rj"].to_numpy()[idx]  # True se o mais próximo está fora do RJ
 
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4)
 c1.metric("Acidentes analisados", f"{len(df):,}".replace(",", "."))
 c2.metric("Distância média ao hospital", f"{km.mean():.1f} km")
 c3.metric("Pior caso", f"{km.max():.1f} km")
+c4.metric("Socorro mais próximo fora do RJ", f"{int(df['hosp_fora'].sum())}")
 
 # Seleção anterior (o clique faz o app rodar de novo, então lemos do session_state)
 sel = (
@@ -54,18 +66,28 @@ sel = (
     .get("objects", {})
     .get("acidentes", [])
 )
+if sel and sel[0]["i"] not in df.index:
+    sel = []  # filtro mudou e o acidente selecionado não existe mais
 
 # Dados enxutos pras camadas (só colunas simples, que serializam bem em JSON)
 acid = df[["latitude", "longitude", "nome_corredor", "km", "dist_km"]].copy()
 acid["i"] = df.index
-acid["dist_txt"] = acid["dist_km"].round(1).astype(str)
-hosp_map = hosp[["latitude", "longitude", "nome_hospital", "ds_tipo_unidade"]]
+acid["rotulo"] = "Acidente " + acid["nome_corredor"] + " km " + acid["km"].astype(str)
+
+# Cor por categoria: laranja (fora do RJ), azul (UPA), verde (demais unidades)
+eh_upa = hosp["ds_tipo_unidade"] == "PRONTO ATENDIMENTO"
+hosp["cor"] = [
+    [255, 170, 0, 220] if fora else ([60, 140, 255, 220] if upa else [40, 200, 120, 200])
+    for fora, upa in zip(hosp["fora_rj"], eh_upa)
+]
+hosp["rotulo"] = hosp["nome_hospital"] + " (" + hosp["ds_tipo_unidade"].str.title() + ")"
+hosp_map = hosp[["latitude", "longitude", "rotulo", "cor"]]
 
 camadas = [
     pdk.Layer(
         "ScatterplotLayer", data=hosp_map, id="hospitais",
-        get_position="[longitude, latitude]", get_radius=500,
-        get_fill_color=[40, 200, 120, 200], pickable=True,
+        get_position="[longitude, latitude]", get_radius=600,
+        get_fill_color="cor", pickable=True,
     ),
     pdk.Layer(
         "ScatterplotLayer", data=acid, id="acidentes",
@@ -92,15 +114,18 @@ mapa = pdk.Deck(
     initial_view_state=pdk.ViewState(
         latitude=df["latitude"].mean(), longitude=df["longitude"].mean(), zoom=7.5,
     ),
-    tooltip={"text": "{nome_corredor} km {km}\n{nome_hospital}\n{ds_tipo_unidade}"},
+    tooltip={"text": "{rotulo}"},
 )
 
 st.pydeck_chart(mapa, on_select="rerun", selection_mode="single-object", key="mapa_prox")
+st.caption("🔴 Acidente   🟢 Hospital / pronto-socorro   🔵 UPA (pronto atendimento)   🟠 Apoio fora do RJ")
 
 if sel:
+    local = " (fora do RJ)" if h["fora_rj"] else ""
     st.success(
-        f"Acidente na {a['nome_corredor']} (km {a['km']}): hospital mais próximo é "
-        f"**{h['nome_hospital']}** ({h['ds_tipo_unidade'].title()}), a **{a['dist_km']:.1f} km** em linha reta."
+        f"Acidente na {a['nome_corredor']} (km {a['km']}): mais próximo é "
+        f"**{h['nome_hospital']}**{local} ({h['ds_tipo_unidade'].title()}), "
+        f"a **{a['dist_km']:.1f} km** em linha reta."
     )
 else:
-    st.caption("Clique em um ponto vermelho (acidente) para ver o hospital mais próximo. Pontos verdes são as unidades de saúde.")
+    st.caption("Clique em um ponto vermelho (acidente) para ver a unidade mais próxima.")
