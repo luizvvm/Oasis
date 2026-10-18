@@ -17,6 +17,23 @@ TIPOS_UNIDADES = [
 # Hospital-dia não atende emergência, por isso começa desmarcado
 TIPOS_PADRAO = TIPOS_UNIDADES[:-1]
 
+# Pontos de apoio fora do RJ, perto das divisas (coordenadas APROXIMADAS do centro da cidade)
+# Trocar depois pelos dados reais do CNES de ES, MG e SP
+APOIO_FORA_RJ = [
+    ("Juiz de Fora (MG)", -21.7642, -43.3503),
+    ("Além Paraíba (MG)", -21.8878, -42.7092),
+    ("Leopoldina (MG)", -21.5322, -42.6435),
+    ("Cataguases (MG)", -21.3892, -42.6967),
+    ("Muriaé (MG)", -21.1306, -42.3664),
+    ("Caxambu (MG)", -21.9778, -44.9339),
+    ("Cachoeiro de Itapemirim (ES)", -20.8489, -41.1129),
+    ("Mimoso do Sul (ES)", -21.0636, -41.3622),
+    ("Queluz (SP)", -22.5330, -44.7781),
+    ("Cruzeiro (SP)", -22.5736, -44.9686),
+    ("Lorena (SP)", -22.7306, -45.1244),
+    ("Ubatuba (SP)", -23.4339, -45.0711),
+]
+
 
 @st.cache_data
 def load_data():
@@ -34,16 +51,30 @@ def load_hospitals():
     df = pd.read_csv(
         PASTA / "cnes_ativo_esp_RJ.csv", sep=None, engine="python", encoding="latin1"
     )
+
+    df["nome_hospital"] = (
+        df["no_fantasia"].fillna(df["no_razao_social"]).fillna("Unidade sem nome informado")
+    )
+
+    # Toda unidade com "UPA" no nome vira PRONTO ATENDIMENTO, mesmo que o CNES
+    # tenha classificado em outro tipo (senão ela seria descartada pelo filtro abaixo)
+    eh_upa = df["nome_hospital"].str.contains(r"\bUPA\b", case=False, regex=True)
+    df.loc[eh_upa, "ds_tipo_unidade"] = "PRONTO ATENDIMENTO"
+
     df = df[df["ds_tipo_unidade"].isin(TIPOS_UNIDADES)].copy()
 
     df["latitude"] = pd.to_numeric(df["lat"], errors="coerce")
     df["longitude"] = pd.to_numeric(df["long"], errors="coerce")
     df = df.dropna(subset=["latitude", "longitude"])
+    df["fora_rj"] = False  # unidades que vieram do CNES do RJ
 
-    df["nome_hospital"] = (
-        df["no_fantasia"].fillna(df["no_razao_social"]).fillna("Unidade sem nome informado")
-    )
-    return df
+    # Pontos de apoio fora do RJ, com as mesmas colunas usadas pelo resto do app
+    apoio = pd.DataFrame(APOIO_FORA_RJ, columns=["cidade", "latitude", "longitude"])
+    apoio["nome_hospital"] = "Rede de saúde de " + apoio["cidade"] + " (ponto aproximado)"
+    apoio["ds_tipo_unidade"] = "HOSPITAL GERAL"
+    apoio["fora_rj"] = True
+
+    return pd.concat([df, apoio.drop(columns="cidade")], ignore_index=True)
 
 
 # Grupos de rodovias (por volume de ocorrências), pra não listar cada BR solta
