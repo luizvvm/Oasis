@@ -18,8 +18,10 @@ TIPOS_UNIDADES = [
 TIPOS_PADRAO = TIPOS_UNIDADES[:-1]
 
 # Pontos de apoio fora do RJ, perto das divisas (coordenadas APROXIMADAS do centro da cidade)
-# Trocar depois pelos dados reais do CNES de ES, MG e SP
+# Coordenadas dos novos pontos = centro do município (aproximado)
+# Trocado pelos dados reais do CNES (lat/long de cada hospital)
 APOIO_FORA_RJ = [
+    # --- Já existentes ---
     ("Juiz de Fora (MG)", -21.7642, -43.3503),
     ("Além Paraíba (MG)", -21.8878, -42.7092),
     ("Leopoldina (MG)", -21.5322, -42.6435),
@@ -32,6 +34,29 @@ APOIO_FORA_RJ = [
     ("Cruzeiro (SP)", -22.5736, -44.9686),
     ("Lorena (SP)", -22.7306, -45.1244),
     ("Ubatuba (SP)", -23.4339, -45.0711),
+
+    # --- Novos: SP ---
+    ("Bananal (SP)", -22.6828, -44.3253),
+    ("Areias (SP)", -22.5786, -44.7003),
+
+    # --- Novos: MG ---
+    ("Itamonte (MG)", -22.2850, -44.8683),
+    ("Bocaina de Minas (MG)", -22.1481, -44.4186),
+    ("Santa Rita de Jacutinga (MG)", -22.1469, -44.0956),  # Hosp. Monsenhor Marciano fica aqui
+    ("Passa Vinte (MG)", -22.2078, -44.2478),  # local possível, hospital não confirmado
+    ("Rio Preto (MG)", -22.0847, -43.8269),  # local possível, hospital esperado
+    ("Simão Pereira (MG)", -21.9547, -43.3053),
+    ("Mar de Espanha (MG)", -21.8708, -43.0108),
+    ("Volta Grande (MG)", -21.7667, -42.5417),
+    ("Pirapetinga (MG)", -21.6514, -42.3436),
+    ("Palma (MG)", -21.3700, -42.3200),
+    ("Patrocínio do Muriaé (MG)", -21.1547, -42.2128),
+    ("Antônio Prado de Minas (MG)", -20.8900, -42.1000),
+    ("Tombos (MG)", -20.9061, -42.0286),
+
+    # --- Novos: ES ---
+    ("São José do Calçado (ES)", -21.0231, -41.6511),
+    ("Apiacá (ES)", -21.1522, -41.5681),
 ]
 
 
