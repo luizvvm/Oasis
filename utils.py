@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -44,6 +45,43 @@ def load_hospitals():
         df["no_fantasia"].fillna(df["no_razao_social"]).fillna("Unidade sem nome informado")
     )
     return df
+
+
+@st.cache_data
+def acidentes_com_hospital_mais_proximo(acidentes, hospitais):
+    """Associa cada acidente à unidade mais próxima pela distância geodésica em linha reta."""
+    acidentes = acidentes.dropna(subset=["latitude", "longitude"]).copy().reset_index(drop=True)
+    hospitais = hospitais.dropna(subset=["latitude", "longitude"]).copy().reset_index(drop=True)
+
+    lat_acidentes = np.radians(acidentes["latitude"].to_numpy(dtype=float))
+    lon_acidentes = np.radians(acidentes["longitude"].to_numpy(dtype=float))
+    lat_hospitais = np.radians(hospitais["latitude"].to_numpy(dtype=float))
+    lon_hospitais = np.radians(hospitais["longitude"].to_numpy(dtype=float))
+    indices_hospital = np.empty(len(acidentes), dtype=int)
+    distancias_km = np.empty(len(acidentes), dtype=float)
+
+    for inicio in range(0, len(acidentes), 256):
+        fim = min(inicio + 256, len(acidentes))
+        delta_lat = lat_hospitais[None, :] - lat_acidentes[inicio:fim, None]
+        delta_lon = lon_hospitais[None, :] - lon_acidentes[inicio:fim, None]
+        haversine = (
+            np.sin(delta_lat / 2) ** 2
+            + np.cos(lat_acidentes[inicio:fim, None])
+            * np.cos(lat_hospitais[None, :])
+            * np.sin(delta_lon / 2) ** 2
+        )
+        distancias = 2 * 6371 * np.arcsin(np.sqrt(np.clip(haversine, 0, 1)))
+        indices_hospital[inicio:fim] = distancias.argmin(axis=1)
+        distancias_km[inicio:fim] = distancias.min(axis=1)
+
+    unidade_mais_proxima = hospitais.iloc[indices_hospital].reset_index(drop=True)
+    acidentes["distancia_hospital_km"] = distancias_km
+    acidentes["hospital_mais_proximo"] = unidade_mais_proxima["nome_hospital"]
+    acidentes["tipo_unidade_mais_proxima"] = unidade_mais_proxima["ds_tipo_unidade"]
+    acidentes["municipio_hospital"] = unidade_mais_proxima["municipio"].fillna("-")
+    acidentes["hospital_latitude"] = unidade_mais_proxima["latitude"].to_numpy()
+    acidentes["hospital_longitude"] = unidade_mais_proxima["longitude"].to_numpy()
+    return acidentes
 
 
 # Grupos de rodovias (por volume de ocorrências), pra não listar cada BR solta

@@ -2,6 +2,7 @@
 
 Painel interativo construído em Streamlit para análise de acidentes nas rodovias federais do Rio de Janeiro.
 
+
 ## Como rodar o projeto localmente
 
 Siga os passos abaixo na ordem para configurar o ambiente e iniciar a aplicação.
