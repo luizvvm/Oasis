@@ -2,9 +2,6 @@
 
 Painel interativo construído em Streamlit para análise de acidentes nas rodovias federais do Rio de Janeiro.
 
-Além do mapa geral e das análises, a página **Distância de hospitais** exibe as 50 ocorrências
-mais distantes da unidade de saúde selecionada mais próxima, com mapa, ligações e ranking. A
-distância é geodésica em linha reta entre coordenadas e não representa trajeto por estrada.
 
 ## Como rodar o projeto localmente
 
