@@ -36,7 +36,7 @@ c4.metric(
 st.markdown("---")
 st.markdown("### O que você encontra aqui")
 
-col_mapa, col_analises = st.columns(2)
+col_mapa, col_analises, col_distancia = st.columns(3)
 with col_mapa:
     st.markdown("**Mapa**")
     st.write("Cada acidente e cada unidade de saúde no mapa, com detalhes ao passar o mouse.")
@@ -45,6 +45,14 @@ with col_analises:
     st.markdown("**Análises**")
     st.write("Gráficos por horário, dia da semana, causa, severidade, clima e traçado da via.")
     st.page_link("paginas/analises.py", label="Abrir as análises", icon="📊")
+with col_distancia:
+    st.markdown("**Distância dos hospitais**")
+    st.write("Veja no mapa e no ranking as 50 batidas mais distantes da unidade mais próxima.")
+    st.page_link(
+        "paginas/distancia_hospitais.py",
+        label="Abrir o mapa de distâncias",
+        icon="🏥",
+    )
 
 st.markdown("---")
 st.markdown("### De onde vêm os dados")
