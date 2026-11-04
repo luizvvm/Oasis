@@ -12,7 +12,12 @@ hospitais = load_hospitals()
 tipos = filtro_tipos_unidade()
 hospitais = hospitais[hospitais["ds_tipo_unidade"].isin(tipos)].copy()
 
-st.title("Mapa: top 50 batidas mais longe dos hospitais")
+st.title("Distância dos hospitais")
+st.caption(
+    "Quais ocorrências ficam mais longe das unidades de saúde? "
+    "Consulte o mapa e o ranking dos 50 acidentes mais distantes da unidade considerada "
+    "mais próxima, conforme as rodovias e os tipos de unidade selecionados."
+)
 st.caption(
     "Distância em linha reta entre as coordenadas da ocorrência e da unidade de saúde "
     "mais próxima; não representa distância por estrada nem tempo de viagem."
@@ -32,7 +37,7 @@ top_50 = ordenados.sort_values(
     "distancia_hospital_km", ascending=False, kind="stable"
 ).head(50).copy()
 
-st.subheader("Mapa das batidas mais distantes")
+st.subheader("Mapa das ocorrências mais distantes")
 
 icone_hospital = {
     "url": "data:image/svg+xml;charset=utf-8,"
@@ -129,7 +134,7 @@ st.caption(
     f"({len(unidades)}). As linhas ligam cada ocorrência à unidade atribuída."
 )
 
-st.subheader("Ordem das batidas mais longe dos hospitais")
+st.subheader("Ranking das ocorrências mais distantes")
 ranking = top_50[
     [
         "data_inversa",

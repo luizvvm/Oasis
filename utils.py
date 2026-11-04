@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from riscos import LIMITE_KM_PADRAO, MIN_BATIDAS_PADRAO, TOP_N_PADRAO
+
 PASTA = Path(__file__).parent
 
 # Tipos de unidade do CNES que podem aparecer no mapa
@@ -214,3 +216,25 @@ def filtro_tipos_unidade():
                     selecionados.append(tipo)
     st.sidebar.caption(f"{len(selecionados)} de {len(TIPOS_UNIDADES)} tipos selecionados")
     return selecionados
+
+
+def filtro_areas_risco():
+    """Parâmetros das áreas de risco (batidas longe de unidades de saúde); devolve (top_n, limite_km, min_batidas)."""
+    with st.sidebar.expander("Parâmetros das áreas de risco", expanded=False):
+        top_n = st.number_input(
+            "Quantidade de batidas mais distantes",
+            min_value=5, max_value=500, value=TOP_N_PADRAO, step=5,
+            help="Quantas batidas, das mais longe de uma unidade de saúde para as mais perto, entram no cálculo.",
+        )
+        limite_km = st.slider(
+            "Distância máxima entre batidas da mesma área (km)",
+            min_value=0.5, max_value=10.0, value=LIMITE_KM_PADRAO, step=0.5,
+            help="Batidas a até essa distância uma da outra (mesmo que por 'vizinhas de vizinhas') "
+            "viram uma única área. Acima de ~3 km áreas distintas começam a se fundir em retângulos enormes.",
+        )
+        min_batidas = st.number_input(
+            "Mínimo de batidas por área",
+            min_value=1, max_value=10, value=MIN_BATIDAS_PADRAO, step=1,
+            help="Áreas com menos batidas que isso não são desenhadas (uma batida isolada não é uma área).",
+        )
+    return int(top_n), float(limite_km), int(min_batidas)
