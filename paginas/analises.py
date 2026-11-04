@@ -27,7 +27,11 @@ def barras(dados, categoria, cor, rotulo=None, hover=None):
 
 periodo = f"{df['data_inversa'].min():%d/%m/%Y} a {df['data_inversa'].max():%d/%m/%Y}"
 
-st.title("Análises dos acidentes")
+st.title("Análises")
+st.caption(
+    "Quando e em quais condições ocorrem os acidentes? "
+    "Investigue horários, causas, gravidade e características das vias nos registros selecionados."
+)
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Total de ocorrências", len(df))
@@ -36,7 +40,7 @@ c3.metric("Feridos graves", int(df["feridos_graves"].sum()))
 c4.metric("Feridos leves", int(df["feridos_leves"].sum()))
 
 tab_temporal, tab_causas, tab_via = st.tabs(
-    ["Análise temporal", "Causas e severidade", "Infraestrutura e clima"]
+    ["Horários e dias", "Causas e gravidade", "Via e clima"]
 )
 
 with tab_temporal:
